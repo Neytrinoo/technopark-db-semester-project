@@ -11,23 +11,23 @@ type UserRepo interface {
 type ForumRepo interface {
 	Create(forum *models.ForumCreate) (*models.Forum, error)
 	Get(slug string) (*models.Forum, error)
-	GetUsers(slug string) (*[]models.User, error)     // получение пользователей форума
-	GetThreads(slug string) (*[]models.Thread, error) // получение веток обсуждения форума
+	GetUsers(getSettings *models.GetForumUsers) (*[]models.User, error)                    // получение пользователей форума
+	GetThreads(slug string, getSettings *models.GetForumThreads) (*[]models.Thread, error) // получение веток обсуждения форума
 }
 
 type PostRepo interface {
-	Get(id int) (*models.Post, error)
-	Update(id int, updateDate *models.Post) error
-	Create(threadSlugOrId string, posts *[]models.Post) error // создание постов для ветки. created у post'ов должен быть одинаковый
+	Get(id int64, getSettings *models.PostGetRequest) (*models.PostGetResult, error)
+	Update(id int64, updateDate *models.PostUpdate) (*models.Post, error)
+	Create(threadSlugOrId string, posts *[]models.PostCreate) (*[]models.Post, error) // создание постов для ветки. created у post'ов должен быть одинаковый
 }
 
 type ThreadRepo interface {
 	Create(forumSlug string, thread *models.ThreadCreate) (*models.Thread, error) // создаст ветку в нужном форуме
 	Get(threadSlugOrId string) (*models.Thread, error)
 	Update(threadSlugOrId string, updateData *models.ThreadUpdate) (*models.Thread, error)
-	GetPosts(getSettings *models.ThreadPostRequest) (*[]models.Post, error) // все сообщения данной ветки
+	GetPosts(slugOrId string, getSettings *models.ThreadPostRequest) (*[]models.Post, error) // все сообщения данной ветки
 }
 
 type VoteRepo interface {
-	Create(threadSlugOrId string, vote *models.Vote) error // пользователь должен учитываться только один раз
+	Create(threadSlugOrId string, vote *models.VoteCreate) (*models.Thread, error) // пользователь должен учитываться только один раз
 }

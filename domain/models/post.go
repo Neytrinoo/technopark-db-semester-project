@@ -12,3 +12,30 @@ type Post struct {
 	Thread   int32     `json:"thread"`   // id ветви данного сообщения
 	Created  time.Time `json:"created"`
 }
+
+type PostCreate struct {
+	Parent  int64  `json:"parent"`
+	Author  string `json:"author"`
+	Message string `json:"message"`
+}
+
+type PostGetResult struct {
+	Post   *Post   `json:"post"`
+	Author *User   `json:"author,omitempty"`
+	Thread *Thread `json:"thread,omitempty"`
+	Forum  *Forum  `json:"forum,omitempty"`
+}
+
+type PostGetRequest struct {
+	Related []string `json:"related,omitempty"` // user, forum, thread
+}
+
+type PostUpdate struct {
+	Message string `json:"message,omitempty"`
+}
+
+const (
+	RelatedUser   = "user"
+	RelatedThread = "thread"
+	RelatedForum  = "forum"
+)

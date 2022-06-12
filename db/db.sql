@@ -1,3 +1,5 @@
+CREATE EXTENSION citext;
+
 CREATE TABLE if not exists Users
 (
     id       bigserial NOT NULL,
@@ -43,7 +45,6 @@ CREATE TABLE if not exists Posts
 
 CREATE TABLE if not exists Votes
 (
-    id       bigserial NOT NULL PRIMARY KEY,
     nickname citext    NOT NULL REFERENCES Users (nickname),
     thread   serial    NOT NULL REFERENCES Threads (id),
     voice    integer   NOT NULL

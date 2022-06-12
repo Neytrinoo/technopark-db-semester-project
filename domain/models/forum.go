@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Forum struct {
 	Title   string `json:"title"`
 	User    string `json:"user"`    // nickname полоьзователя-владельца форума
@@ -12,4 +14,17 @@ type ForumCreate struct {
 	Title string `json:"title"`
 	User  string `json:"user"`
 	Slug  string `json:"slug"`
+}
+
+type GetForumUsers struct {
+	Slug  string `json:"slug"`
+	Limit int32  `json:"limit"` // default 100
+	Since string `json:"since"` // nickname пользователя, с которого будем выводить результат
+	Desc  bool   `json:"desc"`
+}
+
+type GetForumThreads struct {
+	Limit int32     `json:"limit,omitempty"` // default 100
+	Since time.Time `json:"since,omitempty"` // nickname пользователя, с которого будем выводить результат
+	Desc  bool      `json:"desc,omitempty"`
 }

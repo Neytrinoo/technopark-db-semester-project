@@ -16,7 +16,7 @@ type Thread struct {
 type ThreadCreate struct {
 	Title   string    `json:"title"`
 	Author  string    `json:"author"`
-	Forum   string    `json:"forum"`
+	Forum   string    `json:"forum,omitempty"`
 	Message string    `json:"message"`
 	Slug    string    `json:"slug,omitempty"`
 	Created time.Time `json:"created"`
@@ -28,9 +28,14 @@ type ThreadUpdate struct {
 }
 
 type ThreadPostRequest struct {
-	SlugOrId string `json:"slug_or_id"`
-	Limit    int32  `json:"limit,omitempty"`
-	Since    int64  `json:"since"`
-	Sort     string `json:"sort"` // flat, tree или parent_tree
-	Desc     bool   `json:"desc"` // флаг сортировки по убыванию
+	Limit int32  `json:"limit,omitempty"`
+	Since int64  `json:"since"`
+	Sort  string `json:"sort"` // flat, tree или parent_tree
+	Desc  bool   `json:"desc"` // флаг сортировки по убыванию
 }
+
+const (
+	Flat       = "flat"
+	Tree       = "tree"
+	ParentTree = "parent_tree"
+)
