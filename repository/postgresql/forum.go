@@ -1,15 +1,17 @@
 package postgresql
 
 import (
+	"context"
 	"errors"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"log"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
 
 const (
-	CreateForumCommand     = "INSERT INTO Forums (title, user, slug) VALUES ($1, $2, $3) RETURNING id"
-	GetForumCommand        = "SELECT title, user, slug, posts, threads FROM Forums WHERE slug = $1"
+	CreateForumCommand     = "INSERT INTO Forums (title, \"user\", slug) VALUES ($1, $2, $3) RETURNING id"
+	GetForumCommand        = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1"
 	GetUsersOnForumCommand = "SELECT nickname, fullname, about, email FROM " +
 		"(SELECT DISTINCT author AS user_nickname FROM Threads WHERE forum = $1 AND author > $2" +
 		"UNION DISTINCT " +
@@ -47,22 +49,23 @@ var (
 )
 
 type ForumPostgresRepo struct {
-	Db *sqlx.DB
+	Db *pgxpool.Pool
 }
 
-func NewForumPostgresRepo(db *sqlx.DB) domain.ForumRepo {
+func NewForumPostgresRepo(db *pgxpool.Pool) domain.ForumRepo {
 	return &ForumPostgresRepo{Db: db}
 }
 
 func (a *ForumPostgresRepo) Create(forum *models.ForumCreate) (*models.Forum, error) {
-	_, err := a.Db.Exec(GetUserByNicknameCommand, forum.User)
+	_, err := a.Db.Query(context.Background(), GetUserByNicknameCommand, forum.User)
 	if err != nil {
 		return nil, ErrorUserDoesNotExist
 	}
 
-	_, err = a.Db.Exec(CreateForumCommand, forum.Title, forum.User, forum.Slug)
+	_, err = a.Db.Query(context.Background(), CreateForumCommand, forum.Title, forum.User, forum.Slug)
 	if err != nil {
 		forumAlreadyExist, _ := a.Get(forum.Slug)
+		log.Println("error in create:", err)
 		return forumAlreadyExist, ErrorForumAlreadyExist
 	}
 

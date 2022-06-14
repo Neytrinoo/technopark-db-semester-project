@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"strconv"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
@@ -99,28 +100,40 @@ func (a *PostPostgresRepo) Create(threadSlugOrId string, posts *[]models.PostCre
 	}
 
 	// TODO: пока что сделаю без проверки наличия каждого родительского поста
-	postsResult := make([]models.Post, len(*posts))
-	argsForCommand := make([]interface{}, len(*posts))
+	postsResult := make([]models.Post, 0, len(*posts))
+	argsForCommand := make([]interface{}, 0, len(*posts))
 	dbCommand := "INSERT INTO Posts (parent, author, message, forum, thread, created) VALUES "
 
 	createdTime := time.Now()
 	for ind, post := range *posts {
 		sixInd := ind * 6
 		dbCommand += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d),", sixInd+1, sixInd+2, sixInd+3, sixInd+4, sixInd+5, sixInd+6)
+		//dbCommand += fmt.Sprintf("(?, ?, ?, ?, ?, ?),")
 		argsForCommand = append(argsForCommand, post.Parent, post.Author, post.Message, thread.Forum, thread.Id, createdTime)
 		postsResult = append(postsResult, models.Post{Parent: post.Parent, Author: post.Author, Message: post.Message, Forum: thread.Forum, Thread: thread.Id, Created: createdTime})
 	}
 
-	dbCommand = dbCommand[:len(dbCommand)-1] + " RETURNING id"
+	dbCommand = dbCommand[:len(dbCommand)-1] + " RETURNING id;"
 
+	//log.Println(dbCommand)
 	rows, err := a.Db.Query(dbCommand, argsForCommand...)
 	if err != nil {
+		log.Println("error1 = ", err)
 		return nil, ErrorAuthorDoesNotExist
 	}
 
+	log.Println(rows.Columns())
+	var id2 int
+	rows.Next()
+	err = rows.Scan(&id2)
+	log.Println("id = ", id2, "err = ", err)
+
 	for ind := 0; rows.Next(); ind++ {
 		err = rows.Scan(&postsResult[ind].Id)
+		log.Println("id = ", postsResult[ind].Id)
+
 		if err != nil {
+			log.Println("error2 = ", err)
 			return nil, ErrorAuthorDoesNotExist
 		}
 	}

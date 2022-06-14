@@ -19,10 +19,10 @@ func MakeVoteHandler(voteRepo domain.VoteRepo) VoteHandler {
 func (a *VoteHandler) Create(c echo.Context) error {
 	slugOrId := c.Param("slug_or_id")
 	var voteCreate models.VoteCreate
-	_ = c.Bind(voteCreate)
+	_ = c.Bind(&voteCreate)
 
 	thread, err := a.voteRepo.Create(slugOrId, &voteCreate)
-	
+
 	if err != nil {
 		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
 	}

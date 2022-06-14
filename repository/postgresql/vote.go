@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	GetVoteByNicknameAndThreadCommand = "SELECT (id, nickname, thread, voice) FROM Votes WHERE nickname = $1 AND thread = $2"
+	GetVoteByNicknameAndThreadCommand = "SELECT nickname, thread, voice FROM Votes WHERE nickname = $1 AND thread = $2"
 	CreateVoteCommand                 = "INSERT INTO Votes (nickname, thread, voice) VALUES ($1, $2, $3)"
-	UpdateVoteCommand                 = "UPDATE Votes SET (voice) = ($1) WHERE nickname = $2 AND thread = $3"
+	UpdateVoteCommand                 = "UPDATE Votes SET voice = $1 WHERE nickname = $2 AND thread = $3 AND voice != $1"
 )
 
 type VotePostgresRepo struct {
@@ -35,7 +35,7 @@ func (a *VotePostgresRepo) Create(threadSlugOrId string, vote *models.VoteCreate
 	}
 
 	var checkVote models.Vote
-	err = a.Db.Get(&checkVote, GetVoteByNicknameAndThreadCommand)
+	err = a.Db.Get(&checkVote, GetVoteByNicknameAndThreadCommand, vote.Nickname, thread.Id)
 	if err != nil {
 		_, _ = a.Db.Exec(CreateVoteCommand, vote.Nickname, thread.Id, vote.Voice)
 		thread.Votes += vote.Voice

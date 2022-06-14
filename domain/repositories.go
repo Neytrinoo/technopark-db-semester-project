@@ -31,3 +31,8 @@ type ThreadRepo interface {
 type VoteRepo interface {
 	Create(threadSlugOrId string, vote *models.VoteCreate) (*models.Thread, error) // пользователь должен учитываться только один раз
 }
+
+type ServiceRepo interface {
+	GetInfo() (*models.Service, error)
+	Clear() error
+}
