@@ -175,7 +175,7 @@ EXECUTE PROCEDURE update_thread_vote();
 -- Indexes
 
 -- Threads
-CREATE INDEX IF NOT EXISTS for_search_users_on_forum_threads ON Threads (forum, author);
+--CREATE INDEX IF NOT EXISTS for_search_users_on_forum_threads ON Threads (forum, author);
 CREATE INDEX IF NOT EXISTS for_search_threads_on_forum ON Threads (forum, created);
 CREATE INDEX IF NOT EXISTS for_search_by_slug ON Threads USING hash (slug);
 CREATE INDEX IF NOT EXISTS for_search_by_forum ON Threads USING hash (forum);
