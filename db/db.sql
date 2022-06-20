@@ -7,7 +7,7 @@ CREATE UNLOGGED TABLE if not exists Users
     nickname citext COLLATE "C" NOT NULL PRIMARY KEY, -- для побайтового сравнения в нижнем регистре добавляем COLLATE "C"
     fullname text               NOT NULL,
     about    text,
-    email    citext             NOT NULL UNIQUE
+    email    citext UNIQUE
 );
 
 CREATE UNLOGGED TABLE if not exists Forums
@@ -27,7 +27,7 @@ CREATE UNLOGGED TABLE if not exists Threads
     author  citext COLLATE "C" NOT NULL REFERENCES Users (nickname),
     forum   citext             NOT NULL REFERENCES Forums (slug),
     message text               NOT NULL,
-    votes   integer                  DEFAULT 0,
+    votes   integer     DEFAULT 0,
     slug    citext             NOT NULL,
     created timestamptz DEFAULT now()
 );
@@ -35,14 +35,14 @@ CREATE UNLOGGED TABLE if not exists Threads
 CREATE UNLOGGED TABLE if not exists Posts
 (
     id          bigserial          NOT NULL PRIMARY KEY,
-    parent      integer                  DEFAULT 0,
+    parent      integer     DEFAULT 0,
     author      citext COLLATE "C" NOT NULL REFERENCES Users (nickname),
     message     text               NOT NULL,
-    isEdited    boolean                  DEFAULT false,
+    isEdited    boolean     DEFAULT false,
     forum       citext             NOT NULL REFERENCES Forums (slug),
     thread      integer REFERENCES Threads (id),
     created     timestamptz DEFAULT now(),
-    parent_path BIGINT[]                 DEFAULT ARRAY []::integer[]
+    parent_path BIGINT[]    DEFAULT ARRAY []::integer[]
 );
 
 CREATE UNLOGGED TABLE IF NOT EXISTS ForumUsers

@@ -92,6 +92,18 @@ func (a *PostPostgresRepo) Update(id int64, updateDate *models.PostUpdate) (*mod
 	return &post, nil
 }
 
+func (a *PostPostgresRepo) CheckParentAndAuthor(post *models.PostCreate) error {
+	if post.Parent != 0 {
+		_, err := a.Db.Exec(context.Background(), GetPostCommand, post.Parent)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := a.Db.Exec(context.Background(), GetUserByNicknameCommand, post.Author)
+
+	return err
+}
+
 func (a *PostPostgresRepo) Create(ctx context.Context, threadSlugOrId string, posts *[]models.PostCreate) (*[]models.Post, error) {
 	var thread models.Thread
 	id, err := strconv.Atoi(threadSlugOrId)
@@ -108,6 +120,15 @@ func (a *PostPostgresRepo) Create(ctx context.Context, threadSlugOrId string, po
 	if len(*posts) == 0 {
 		postsToRet := make([]models.Post, 0)
 		return &postsToRet, nil
+	}
+
+	if len(*posts) == 0 {
+		emptyPosts := make([]models.Post, 0)
+		return &emptyPosts, nil
+	}
+
+	if a.CheckParentAndAuthor(&(*posts)[0]) != nil {
+		return nil, ErrorParentPostDoesNotExist
 	}
 
 	command := strings.Builder{}
