@@ -3,39 +3,20 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"log"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
 
 const (
-	CreateForumCommand     = "INSERT INTO Forums (title, \"user\", slug) VALUES ($1, $2, $3) RETURNING id"
-	GetForumCommand        = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1"
-	GetUsersOnForumCommand = "SELECT nickname, fullname, about, email FROM " +
-		"(SELECT DISTINCT author AS user_nickname FROM Threads WHERE forum = $1 AND author > $2" +
-		"UNION DISTINCT " +
-		"SELECT DISTINCT author AS user_nickname FROM Posts WHERE forum = $1 AND author > $2) " +
-		"LEFT JOIN Users ON Users.nickname = user_nickname " +
-		"ORDER BY nickname LIMIT $3"
-	GetUsersOnForumDescCommand = "SELECT nickname, fullname, about, email FROM " +
-		"(SELECT DISTINCT author AS user_nickname FROM Threads WHERE forum = $1 AND author < $2" +
-		"UNION DISTINCT " +
-		"SELECT DISTINCT author AS user_nickname FROM Posts WHERE forum = $1 AND author < $2) " +
-		"LEFT JOIN Users ON Users.nickname = user_nickname " +
-		"ORDER BY nickname DESC LIMIT $3"
-	GetUsersOnForumWithoutSinceCommand = "SELECT nickname, fullname, about, email FROM " +
-		"(SELECT DISTINCT author AS user_nickname FROM Threads WHERE forum = $1" +
-		"UNION DISTINCT " +
-		"SELECT DISTINCT author AS user_nickname FROM Posts WHERE forum = $1) " +
-		"LEFT JOIN Users ON Users.nickname = user_nickname " +
-		"ORDER BY nickname LIMIT $2"
-	GetUsersOnForumWithoutSinceDescCommand = "SELECT nickname, fullname, about, email FROM " +
-		"(SELECT DISTINCT author AS user_nickname FROM Threads WHERE forum = $1" +
-		"UNION DISTINCT " +
-		"SELECT DISTINCT author AS user_nickname FROM Posts WHERE forum = $1) " +
-		"LEFT JOIN Users ON Users.nickname = user_nickname " +
-		"ORDER BY nickname DESC LIMIT $2"
+	CreateForumCommand = "INSERT INTO Forums (title, \"user\", slug) VALUES ($1, $2, $3)"
+	GetForumCommand    = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1"
+
+	GetUsersOnForumCommand                 = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname > $2 ORDER BY nickname LIMIT $3"
+	GetUsersOnForumDescCommand             = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname < $2 ORDER BY nickname DESC LIMIT $3"
+	GetUsersOnForumWithoutSinceCommand     = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname LIMIT $2"
+	GetUsersOnForumWithoutSinceDescCommand = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname DESC LIMIT $2"
 
 	GetThreadsOnForumCommand                 = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created >= $2 ORDER BY created LIMIT $3"
 	GetThreadsOnForumDescCommand             = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3"
@@ -57,19 +38,25 @@ func NewForumPostgresRepo(db *pgxpool.Pool) domain.ForumRepo {
 }
 
 func (a *ForumPostgresRepo) Create(forum *models.ForumCreate) (*models.Forum, error) {
-	_, err := a.Db.Query(context.Background(), GetUserByNicknameCommand, forum.User)
+	var user models.User
+	err := a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, forum.User).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	if err != nil {
 		return nil, ErrorUserDoesNotExist
 	}
 
-	_, err = a.Db.Query(context.Background(), CreateForumCommand, forum.Title, forum.User, forum.Slug)
+	_, err = a.Db.Exec(context.Background(), CreateForumCommand, forum.Title, user.Nickname, forum.Slug)
 	if err != nil {
 		forumAlreadyExist, _ := a.Get(forum.Slug)
-		log.Println("error in create:", err)
 		return forumAlreadyExist, ErrorForumAlreadyExist
 	}
 
-	forumToReturn, _ := a.Get(forum.Slug)
+	forumToReturn := &models.Forum{
+		Title:   forum.Title,
+		User:    user.Nickname,
+		Slug:    forum.Slug,
+		Posts:   0,
+		Threads: 0,
+	}
 
 	return forumToReturn, nil
 }
@@ -77,7 +64,7 @@ func (a *ForumPostgresRepo) Create(forum *models.ForumCreate) (*models.Forum, er
 func (a *ForumPostgresRepo) Get(slug string) (*models.Forum, error) {
 	var forum models.Forum
 
-	err := a.Db.Get(&forum, GetForumCommand, slug)
+	err := a.Db.QueryRow(context.Background(), GetForumCommand, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
 	}
@@ -87,49 +74,81 @@ func (a *ForumPostgresRepo) Get(slug string) (*models.Forum, error) {
 
 func (a *ForumPostgresRepo) GetUsers(getSettings *models.GetForumUsers) (*[]models.User, error) {
 	var err error
-	users := make([]models.User, 0)
+	var rows pgx.Rows
+
+	_, err = a.Get(getSettings.Slug)
+	if err != nil {
+		return nil, ErrorForumDoesNotExist
+	}
 
 	if getSettings.Desc {
-		if getSettings.Since != "" {
-			err = a.Db.Get(&users, GetUsersOnForumDescCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
+		if getSettings.Since == "" {
+			rows, err = a.Db.Query(context.Background(), GetUsersOnForumWithoutSinceDescCommand, getSettings.Slug, getSettings.Limit)
 		} else {
-			err = a.Db.Get(&users, GetUsersOnForumWithoutSinceDescCommand, getSettings.Slug, getSettings.Limit)
+			rows, err = a.Db.Query(context.Background(), GetUsersOnForumDescCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
 		}
 	} else {
-		if getSettings.Since != "" {
-			err = a.Db.Get(&users, GetUsersOnForumCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
+		if getSettings.Since == "" {
+			rows, err = a.Db.Query(context.Background(), GetUsersOnForumWithoutSinceCommand, getSettings.Slug, getSettings.Limit)
 		} else {
-			err = a.Db.Get(&users, GetUsersOnForumWithoutSinceCommand, getSettings.Slug, getSettings.Limit)
+			rows, err = a.Db.Query(context.Background(), GetUsersOnForumCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
 		}
 	}
 
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
+	}
+	defer rows.Close()
+
+	users := make([]models.User, 0, rows.CommandTag().RowsAffected())
+	for rows.Next() {
+		user := models.User{}
+		err = rows.Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+		if err != nil {
+			return nil, ErrorForumDoesNotExist
+		}
+		users = append(users, user)
 	}
 
 	return &users, nil
 }
 
 func (a *ForumPostgresRepo) GetThreads(slug string, getSettings *models.GetForumThreads) (*[]models.Thread, error) {
-	threads := make([]models.Thread, 0)
-	var err error
+	var rows pgx.Rows
+
+	_, err := a.Get(slug)
+	if err != nil {
+		return nil, ErrorForumDoesNotExist
+	}
 
 	if getSettings.Desc {
-		if getSettings.Since.IsZero() {
-			err = a.Db.Get(&threads, GetThreadsOnForumWithoutSinceDescCommand, slug, getSettings.Limit)
+		if getSettings.Since == "" {
+			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumWithoutSinceDescCommand, slug, getSettings.Limit)
 		} else {
-			err = a.Db.Get(&threads, GetThreadsOnForumDescCommand, slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumDescCommand, slug, getSettings.Since, getSettings.Limit)
 		}
 	} else {
-		if getSettings.Since.IsZero() {
-			err = a.Db.Get(&threads, GetThreadsOnForumWithoutSinceCommand, slug, getSettings.Limit)
+		if getSettings.Since == "" {
+			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumWithoutSinceCommand, slug, getSettings.Limit)
 		} else {
-			err = a.Db.Get(&threads, GetThreadsOnForumCommand, slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumCommand, slug, getSettings.Since, getSettings.Limit)
 		}
 	}
 
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
+	}
+	defer rows.Close()
+
+	threads := make([]models.Thread, 0, rows.CommandTag().RowsAffected())
+	for rows.Next() {
+		thread := models.Thread{}
+		err = rows.Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		if err != nil {
+			return nil, ErrorForumDoesNotExist
+		}
+
+		threads = append(threads, thread)
 	}
 
 	return &threads, nil

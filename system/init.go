@@ -2,9 +2,8 @@ package system
 
 import (
 	"context"
-	_ "github.com/jackc/pgx"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/jmoiron/sqlx"
+	_ "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"technopark-db-semester-project/delivery"
 	"technopark-db-semester-project/domain"
@@ -12,22 +11,7 @@ import (
 )
 
 func InitDb() *pgxpool.Pool {
-	/*dsn := "user=root dbname=postgres password=rootpassword host=127.0.0.1 port=5432 sslmode=disable"
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		log.Fatalln("cant parse config", err)
-	}
-	err = db.Ping() // вот тут будет первое подключение к базе*/
-	/*db, err := sqlx.Connect("pgx", "postgres://root:rootpassword@localhost:5432/technopark-dbms")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = db.Ping()
-	if err != nil {
-		log.Fatalln("ping error:", err)
-	}
-	db.SetMaxOpenConns(10)*/
-	dbPool, err := pgxpool.Connect(context.Background(), "postgres://root:rootpassword@localhost:5432/technopark-dbms")
+	dbPool, err := pgxpool.Connect(context.Background(), "postgres://root:admin@localhost:5432/forum_db")
 	if err != nil {
 		log.Fatalln("conn error:", err)
 	}
@@ -35,7 +19,7 @@ func InitDb() *pgxpool.Pool {
 	return dbPool
 }
 
-func InitRepos(db *sqlx.DB) (domain.UserRepo, domain.ForumRepo, domain.ThreadRepo, domain.PostRepo, domain.VoteRepo, domain.ServiceRepo) {
+func InitRepos(db *pgxpool.Pool) (domain.UserRepo, domain.ForumRepo, domain.ThreadRepo, domain.PostRepo, domain.VoteRepo, domain.ServiceRepo) {
 	userRepo := postgresql.NewUserPostgresRepo(db)
 	forumRepo := postgresql.NewForumPostgresRepo(db)
 	threadRepo := postgresql.NewThreadPostgresRepo(db)

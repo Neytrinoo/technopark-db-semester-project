@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 	"technopark-db-semester-project/repository/postgresql"
@@ -49,14 +50,27 @@ func (a *ForumHandler) Get(c echo.Context) error {
 // GET forum/{slug}/users
 func (a *ForumHandler) GetUsers(c echo.Context) error {
 	slug := c.Param("slug")
-	var forumUsers models.GetForumUsers
-	_ = c.Bind(&forumUsers)
-	forumUsers.Slug = slug
-	if forumUsers.Limit == 0 {
-		forumUsers.Limit = 100
+
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil {
+		limit = 100
 	}
 
-	users, err := a.forumRepo.GetUsers(&forumUsers)
+	since := c.QueryParam("since")
+
+	desc, err := strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		desc = false
+	}
+
+	forumUsers := &models.GetForumUsers{
+		Slug:  slug,
+		Limit: int32(limit),
+		Since: since,
+		Desc:  desc,
+	}
+
+	users, err := a.forumRepo.GetUsers(forumUsers)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
 	}
@@ -67,13 +81,23 @@ func (a *ForumHandler) GetUsers(c echo.Context) error {
 // GET forum/{slug}/threads
 func (a *ForumHandler) GetThreads(c echo.Context) error {
 	slug := c.Param("slug")
-	var forumThreads models.GetForumThreads
-	_ = c.Bind(&forumThreads)
-	if forumThreads.Limit == 0 {
-		forumThreads.Limit = 100
+
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil {
+		limit = 100
+	}
+	desc, err := strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		desc = false
 	}
 
-	threads, err := a.forumRepo.GetThreads(slug, &forumThreads)
+	forumThreads := &models.GetForumThreads{
+		Limit: int32(limit),
+		Since: c.QueryParam("since"),
+		Desc:  desc,
+	}
+
+	threads, err := a.forumRepo.GetThreads(slug, forumThreads)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
 	}

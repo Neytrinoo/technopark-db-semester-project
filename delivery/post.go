@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
+	"strings"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 	"technopark-db-semester-project/repository/postgresql"
@@ -24,12 +25,14 @@ func (a *PostHandler) Create(c echo.Context) error {
 	postsCreate := make([]models.PostCreate, 0)
 	_ = c.Bind(&postsCreate)
 
-	posts, err := a.postRepo.Create(slugOrId, &postsCreate)
+	posts, err := a.postRepo.Create(c.Request().Context(), slugOrId, &postsCreate)
 	if err != nil {
 		if errors.Is(err, postgresql.ErrorThreadDoesNotExist) {
 			return c.JSON(http.StatusNotFound, GetErrorMessage(err))
-		} else if errors.Is(err, postgresql.ErrorAuthorDoesNotExist) {
+		} else if errors.Is(err, postgresql.ErrorParentPostDoesNotExist) {
 			return c.JSON(http.StatusConflict, GetErrorMessage(err))
+		} else if errors.Is(err, postgresql.ErrorAuthorDoesNotExist) {
+			return c.JSON(http.StatusNotFound, GetErrorMessage(err))
 		}
 	}
 
@@ -39,10 +42,14 @@ func (a *PostHandler) Create(c echo.Context) error {
 // GET post/{id}/details
 func (a *PostHandler) Get(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	var postGet models.PostGetRequest
-	_ = c.Bind(&postGet)
 
-	posts, err := a.postRepo.Get(int64(id), &postGet)
+	related := c.QueryParam("related")
+
+	postGet := &models.PostGetRequest{
+		Related: strings.Split(related, ","),
+	}
+
+	posts, err := a.postRepo.Get(int64(id), postGet)
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, GetErrorMessage(err))

@@ -1,9 +1,12 @@
 package domain
 
-import "technopark-db-semester-project/domain/models"
+import (
+	"context"
+	"technopark-db-semester-project/domain/models"
+)
 
 type UserRepo interface {
-	Create(user *models.User) (*models.User, error)
+	Create(user *models.User) (*[]models.User, error)
 	Update(nickname string, updateData *models.UserUpdate) (*models.User, error)
 	Get(nicknameOrEmail string) (*models.User, error)
 }
@@ -18,7 +21,7 @@ type ForumRepo interface {
 type PostRepo interface {
 	Get(id int64, getSettings *models.PostGetRequest) (*models.PostGetResult, error)
 	Update(id int64, updateDate *models.PostUpdate) (*models.Post, error)
-	Create(threadSlugOrId string, posts *[]models.PostCreate) (*[]models.Post, error) // создание постов для ветки. created у post'ов должен быть одинаковый
+	Create(ctx context.Context, threadSlugOrId string, posts *[]models.PostCreate) (*[]models.Post, error) // создание постов для ветки. created у post'ов должен быть одинаковый
 }
 
 type ThreadRepo interface {

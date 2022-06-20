@@ -1,14 +1,15 @@
 package postgresql
 
 import (
+	"context"
 	"errors"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
 
 const (
-	CreateUserCommand        = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4) RETURNING id"
+	CreateUserCommand        = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4)"
 	UpdateUserCommand        = "UPDATE Users SET (fullname, about, email) = ($1, $2, $3) WHERE nickname = $4"
 	GetUserByNicknameCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1"
 	GetUserByEmailCommand    = "SELECT nickname, fullname, about, email FROM Users WHERE email = $1"
@@ -21,24 +22,35 @@ var (
 )
 
 type UserPostgresRepo struct {
-	Db *sqlx.DB
+	Db *pgxpool.Pool
 }
 
-func NewUserPostgresRepo(db *sqlx.DB) domain.UserRepo {
+func NewUserPostgresRepo(db *pgxpool.Pool) domain.UserRepo {
 	return &UserPostgresRepo{Db: db}
 }
 
-func (a *UserPostgresRepo) Create(user *models.User) (*models.User, error) {
-	_, err := a.Db.Exec(CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
+func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
+	userToReturn := make([]models.User, 0, 2)
+	_, err := a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
 	if err != nil {
+		var firstNickname string
+
 		userAlreadyExist, err := a.Get(user.Nickname)
-		if err != nil {
-			userAlreadyExist, _ = a.Get(user.Email)
+
+		if err == nil {
+			firstNickname = userAlreadyExist.Nickname
+			userToReturn = append(userToReturn, *userAlreadyExist)
 		}
-		return userAlreadyExist, ErrorUserAlreadyExist
+		userAlreadyExist, err = a.Get(user.Email)
+		if err == nil && userAlreadyExist.Nickname != firstNickname {
+			userToReturn = append(userToReturn, *userAlreadyExist)
+		}
+
+		return &userToReturn, ErrorUserAlreadyExist
 	}
 
-	return user, nil
+	userToReturn = append(userToReturn, *user)
+	return &userToReturn, nil
 }
 
 func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate) (*models.User, error) {
@@ -63,7 +75,7 @@ func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate
 		user.Email = updateData.Email
 	}
 
-	_, err = a.Db.Exec(UpdateUserCommand, updateData.Fullname, updateData.About, updateData.Email, nickname)
+	_, err = a.Db.Exec(context.Background(), UpdateUserCommand, updateData.Fullname, updateData.About, updateData.Email, nickname)
 
 	if err != nil {
 		return nil, ErrorConflictUpdateUser
@@ -74,9 +86,9 @@ func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate
 
 func (a *UserPostgresRepo) Get(nicknameOrEmail string) (*models.User, error) {
 	var user models.User
-	err := a.Db.Get(&user, GetUserByNicknameCommand, nicknameOrEmail)
+	err := a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	if err != nil {
-		err = a.Db.Get(&user, GetUserByEmailCommand, nicknameOrEmail)
+		err = a.Db.QueryRow(context.Background(), GetUserByEmailCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	}
 
 	if err != nil {

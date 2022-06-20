@@ -1,7 +1,8 @@
 package postgresql
 
 import (
-	"github.com/jmoiron/sqlx"
+	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
@@ -12,22 +13,22 @@ const (
 )
 
 type ServicePostgresRepo struct {
-	Db *sqlx.DB
+	Db *pgxpool.Pool
 }
 
-func NewServicePostgresRepo(db *sqlx.DB) domain.ServiceRepo {
+func NewServicePostgresRepo(db *pgxpool.Pool) domain.ServiceRepo {
 	return &ServicePostgresRepo{Db: db}
 }
 
 func (a *ServicePostgresRepo) GetInfo() (*models.Service, error) {
 	var result models.Service
-	_ = a.Db.QueryRow(GetCountRecordsCommand).Scan(&result.User, &result.Forum, &result.Thread, &result.Post)
+	_ = a.Db.QueryRow(context.Background(), GetCountRecordsCommand).Scan(&result.User, &result.Forum, &result.Thread, &result.Post)
 
 	return &result, nil
 }
 
 func (a *ServicePostgresRepo) Clear() error {
-	_, _ = a.Db.Exec(DeleteTablesCommand)
+	_ = a.Db.QueryRow(context.Background(), DeleteTablesCommand)
 
 	return nil
 }

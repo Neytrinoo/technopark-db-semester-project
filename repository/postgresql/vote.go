@@ -1,7 +1,8 @@
 package postgresql
 
 import (
-	"github.com/jmoiron/sqlx"
+	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"strconv"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
@@ -14,10 +15,10 @@ const (
 )
 
 type VotePostgresRepo struct {
-	Db *sqlx.DB
+	Db *pgxpool.Pool
 }
 
-func NewVotePostgresRepo(db *sqlx.DB) domain.VoteRepo {
+func NewVotePostgresRepo(db *pgxpool.Pool) domain.VoteRepo {
 	return &VotePostgresRepo{Db: db}
 }
 
@@ -25,9 +26,9 @@ func (a *VotePostgresRepo) Create(threadSlugOrId string, vote *models.VoteCreate
 	var thread models.Thread
 	id, err := strconv.Atoi(threadSlugOrId)
 	if err != nil {
-		err = a.Db.Get(&thread, GetThreadBySlugCommand, threadSlugOrId)
+		err = a.Db.QueryRow(context.Background(), GetThreadBySlugCommand, threadSlugOrId).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	} else {
-		err = a.Db.Get(&thread, GetThreadByIdCommand, id)
+		err = a.Db.QueryRow(context.Background(), GetThreadByIdCommand, id).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	}
 
 	if err != nil {
@@ -35,12 +36,15 @@ func (a *VotePostgresRepo) Create(threadSlugOrId string, vote *models.VoteCreate
 	}
 
 	var checkVote models.Vote
-	err = a.Db.Get(&checkVote, GetVoteByNicknameAndThreadCommand, vote.Nickname, thread.Id)
+	err = a.Db.QueryRow(context.Background(), GetVoteByNicknameAndThreadCommand, vote.Nickname, thread.Id).Scan(&checkVote.Nickname, &checkVote.Thread, &checkVote.Voice)
 	if err != nil {
-		_, _ = a.Db.Exec(CreateVoteCommand, vote.Nickname, thread.Id, vote.Voice)
+		_, err = a.Db.Exec(context.Background(), CreateVoteCommand, vote.Nickname, thread.Id, vote.Voice)
+		if err != nil {
+			return nil, ErrorUserDoesNotExist
+		}
 		thread.Votes += vote.Voice
 	} else {
-		_, _ = a.Db.Exec(UpdateVoteCommand, vote.Voice, vote.Nickname, thread.Id)
+		_, _ = a.Db.Exec(context.Background(), UpdateVoteCommand, vote.Voice, vote.Nickname, thread.Id)
 		if vote.Voice != checkVote.Voice {
 			thread.Votes += 2 * vote.Voice
 		}

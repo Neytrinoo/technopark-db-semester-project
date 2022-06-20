@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 	"technopark-db-semester-project/repository/postgresql"
@@ -65,10 +66,35 @@ func (a *ThreadHandler) Update(c echo.Context) error {
 // GET thread/{slug_or_id}/posts
 func (a *ThreadHandler) GetPosts(c echo.Context) error {
 	slugOrId := c.Param("slug_or_id")
-	var threadGetPosts models.ThreadPostRequest
-	_ = c.Bind(&threadGetPosts)
 
-	posts, err := a.threadRepo.GetPosts(slugOrId, &threadGetPosts)
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil {
+		limit = 100
+	}
+
+	since, err := strconv.Atoi(c.QueryParam("since"))
+	if err != nil {
+		since = -1
+	}
+
+	sort := c.QueryParam("sort")
+	if sort == "" {
+		sort = models.Flat
+	}
+
+	desc, err := strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		desc = false
+	}
+
+	threadGetPosts := &models.ThreadPostRequest{
+		Limit: int32(limit),
+		Since: int64(since),
+		Sort:  sort,
+		Desc:  desc,
+	}
+
+	posts, err := a.threadRepo.GetPosts(slugOrId, threadGetPosts)
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, GetErrorMessage(err))

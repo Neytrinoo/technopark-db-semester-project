@@ -29,7 +29,7 @@ func (a *UserHandler) Create(c echo.Context) error {
 		return c.JSON(http.StatusConflict, userAfterCreate)
 	}
 
-	return c.JSON(http.StatusCreated, userAfterCreate)
+	return c.JSON(http.StatusCreated, (*userAfterCreate)[0])
 }
 
 // GET /user/{nickname}/profile
