@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DeleteTablesCommand    = "TRUNCATE TABLE Forums, Posts, Threads, Users, Votes CASCADE"
+	DeleteTablesCommand    = "TRUNCATE TABLE Users, Forums, Threads, Posts, ForumUsers, Votes CASCADE"
 	GetCountRecordsCommand = "SELECT (SELECT count(*) FROM Users), (SELECT count(*) FROM Forums), (SELECT count(*) FROM Threads), (SELECT count(*) FROM Posts)"
 )
 
