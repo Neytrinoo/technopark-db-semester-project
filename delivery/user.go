@@ -3,6 +3,7 @@ package delivery
 import (
 	"errors"
 	"github.com/labstack/echo/v4"
+	"log"
 	"net/http"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
@@ -19,12 +20,15 @@ func MakeUserHandler(userRepo domain.UserRepo) UserHandler {
 
 // POST user/{nickname}/create
 func (a *UserHandler) Create(c echo.Context) error {
+	log.Println("In handler func start. Request:", c.Request())
 	nickname := c.Param("nickname")
 	var user models.User
 	_ = c.Bind(&user)
 	user.Nickname = nickname
+	log.Println("In handler func after parse. Request", c.Request())
 
 	userAfterCreate, err := a.userRepo.Create(&user)
+	log.Println("In handler func user create. Request:", c.Request(), "user:", userAfterCreate, "error:", err)
 	if err != nil {
 		return c.JSON(http.StatusConflict, userAfterCreate)
 	}

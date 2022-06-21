@@ -10,11 +10,12 @@ import (
 
 func addTimeLog(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		log.Println("Start. Request:", c.Request().RequestURI)
 		now := time.Now()
 		result := next(c)
 		duration := time.Now().Sub(now)
 
-		log.Println("Request:", c.Request().RequestURI, "time:", duration)
+		log.Println("End. Request:", c.Request().RequestURI, "time:", duration, "Status:", c.Response().Status)
 
 		return result
 	}
@@ -43,7 +44,7 @@ func main() {
 	e.POST("api/thread/:slug_or_id/details", threadHandler.Update)
 	e.GET("api/thread/:slug_or_id/posts", threadHandler.GetPosts)
 	e.POST("api/thread/:slug_or_id/vote", voteHandler.Create)
-	e.POST("api/user/:nickname/create", userHandler.Create)
+	e.POST("api/user/:nickname/create", addTimeLog(userHandler.Create))
 	e.GET("api/user/:nickname/profile", userHandler.Get)
 	e.POST("api/user/:nickname/profile", userHandler.Update)
 
