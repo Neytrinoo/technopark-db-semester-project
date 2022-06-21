@@ -44,7 +44,7 @@ func main() {
 	e.POST("api/thread/:slug_or_id/details", threadHandler.Update)
 	e.GET("api/thread/:slug_or_id/posts", threadHandler.GetPosts)
 	e.POST("api/thread/:slug_or_id/vote", voteHandler.Create)
-	e.POST("api/user/:nickname/create", addTimeLog(userHandler.Create))
+	e.POST("api/user/:nickname/create", userHandler.Create)
 	e.GET("api/user/:nickname/profile", userHandler.Get)
 	e.POST("api/user/:nickname/profile", userHandler.Update)
 

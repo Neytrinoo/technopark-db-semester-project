@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
@@ -29,8 +28,7 @@ func (a *ServicePostgresRepo) GetInfo() (*models.Service, error) {
 }
 
 func (a *ServicePostgresRepo) Clear() error {
-	_, err := a.Db.Exec(context.Background(), DeleteTablesCommand)
-	log.Println("err clear =", err)
+	_, _ = a.Db.Exec(context.Background(), DeleteTablesCommand)
 
 	return nil
 }

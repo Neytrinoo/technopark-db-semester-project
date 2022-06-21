@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
@@ -51,18 +50,12 @@ func (a *UserPostgresRepo) getUserByNicknameOrEmail(nickname string, email strin
 }
 
 func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
-	log.Println("In user repo start. User:", user)
 	_, err := a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
-	log.Println("In user repo after create. err:", err, "User:", user)
 	if err != nil {
-		log.Println("In user repo error create. User:", user)
 		checkAlreadyExist, err := a.getUserByNicknameOrEmail(user.Nickname, user.Email)
-		log.Println("In user repo check already exist:", checkAlreadyExist, "err:", err, "User:", user)
 		if err == nil && len(*checkAlreadyExist) > 0 {
-			log.Println("In user repo user already exist. Users:", checkAlreadyExist, "User:", user)
 			return checkAlreadyExist, ErrorUserAlreadyExist
 		} else {
-			log.Println("In user repo error:", err, "User:", user)
 			return nil, ErrorUserAlreadyExist
 		}
 	}
@@ -70,7 +63,6 @@ func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
 	userToReturn := make([]models.User, 0, 1)
 	userToReturn = append(userToReturn, *user)
 
-	log.Println("In user repo before return:", userToReturn, "User:", user)
 	return &userToReturn, nil
 }
 
