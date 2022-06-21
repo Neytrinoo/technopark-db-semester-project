@@ -1,5 +1,22 @@
 CREATE EXTENSION IF NOT EXISTS citext;
 
+DROP TABLE Users;
+DROP TABLE Forums;
+DROP TABLE Threads;
+DROP TABLE Posts;
+DROP TABLE ForumUsers;
+DROP TABLE Votes;
+
+DROP INDEX for_search_by_slug;
+DROP INDEX for_search_by_forum;
+DROP INDEX for_search_threads_on_forum;
+DROP INDEX for_tree_search;
+DROP INDEX for_parent_tree_search;
+DROP INDEX user_nickname_hash;
+DROP INDEX search_user_vote;
+DROP INDEX forum_slug_hash;
+DROP INDEX forum_users_forum;
+
 -- Tables
 CREATE UNLOGGED TABLE if not exists Users
 (
