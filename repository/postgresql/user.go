@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	CreateUserCommand        = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4)"
-	UpdateUserCommand        = "UPDATE Users SET (fullname, about, email) = ($1, $2, $3) WHERE nickname = $4"
-	GetUserByNicknameCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1"
-	GetUserByEmailCommand    = "SELECT nickname, fullname, about, email FROM Users WHERE email = $1"
+	CreateUserCommand               = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4)"
+	UpdateUserCommand               = "UPDATE Users SET (fullname, about, email) = ($1, $2, $3) WHERE nickname = $4"
+	GetUserByNicknameCommand        = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1"
+	GetUserByEmailCommand           = "SELECT nickname, fullname, about, email FROM Users WHERE email = $1"
+	GetUserByNicknameOrEmailCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1 OR email = $2"
 )
 
 var (
@@ -29,27 +30,39 @@ func NewUserPostgresRepo(db *pgxpool.Pool) domain.UserRepo {
 	return &UserPostgresRepo{Db: db}
 }
 
-func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
-	userToReturn := make([]models.User, 0, 2)
-	_, err := a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
+func (a *UserPostgresRepo) getUserByNicknameOrEmail(nickname string, email string) (*[]models.User, error) {
+	rows, err := a.Db.Query(context.Background(), GetUserByNicknameOrEmailCommand, nickname, email)
 	if err != nil {
-		var firstNickname string
-
-		userAlreadyExist, err := a.Get(user.Nickname)
-
-		if err == nil {
-			firstNickname = userAlreadyExist.Nickname
-			userToReturn = append(userToReturn, *userAlreadyExist)
-		}
-		userAlreadyExist, err = a.Get(user.Email)
-		if err == nil && userAlreadyExist.Nickname != firstNickname {
-			userToReturn = append(userToReturn, *userAlreadyExist)
-		}
-
-		return &userToReturn, ErrorUserAlreadyExist
+		return nil, err
 	}
 
+	users := make([]models.User, 0, rows.CommandTag().RowsAffected())
+	for rows.Next() {
+		user := models.User{}
+		err = rows.Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return &users, nil
+}
+
+func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
+	checkAlreadyExist, err := a.getUserByNicknameOrEmail(user.Nickname, user.Email)
+	if err == nil && len(*checkAlreadyExist) > 0 {
+		return checkAlreadyExist, ErrorUserAlreadyExist
+	}
+
+	_, err = a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
+	if err != nil {
+		return nil, ErrorUserAlreadyExist
+	}
+
+	userToReturn := make([]models.User, 0)
 	userToReturn = append(userToReturn, *user)
+
 	return &userToReturn, nil
 }
 
