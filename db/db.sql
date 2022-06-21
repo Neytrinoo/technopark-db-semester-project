@@ -211,7 +211,7 @@ CREATE INDEX IF NOT EXISTS user_nickname_hash ON Users using hash (nickname);
 CREATE INDEX IF NOT EXISTS  user_nickname_email ON Users (nickname, email);
 
 -- Vote
-CREATE UNIQUE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread);
+--CREATE UNIQUE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread);
 CREATE UNIQUE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread, voice);
 
 -- Forum
