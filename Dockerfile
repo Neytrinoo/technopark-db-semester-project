@@ -1,41 +1,33 @@
-FROM golang:latest AS aboba
+FROM golang:latest AS builder
 
 WORKDIR /app
 
 COPY . ./
-RUN go build ./cmd/main.go
+RUN GOAMD64=v3 go build -ldflags "-w -s" ./cmd/main.go
 
-FROM debian:bullseye
-ENV PSQLVer 13
-ENV DB_HOST 0.0.0.0
-ENV POSTGRES_USER root
-ENV POSTGRES_PASSWORD admin
-ENV POSTGRES_DB forum_db
+FROM ubuntu:20.04
 
-COPY --from=aboba /app/main ./
-
-RUN apt update && apt install -y tzdata
+RUN apt-get -y update && apt-get install -y tzdata
 RUN ln -snf /usr/share/zoneinfo/Russia/Moscow /etc/localtime && echo Russia/Moscow > /etc/timezone
 
-
-RUN apt update && apt install postgresql-$PSQLVer -y
-RUN chmod -R u=rwx /var/lib/postgresql/$PSQLVer/main/
-RUN chmod -R 0700 /etc/postgresql/$PSQLVer/main
-
+RUN apt-get -y update && apt-get install -y postgresql-12 && rm -rf /var/lib/apt/lists/*
 USER postgres
-RUN /etc/init.d/postgresql start && \
-  psql --command "CREATE USER root WITH SUPERUSER PASSWORD 'admin';" && createdb -O root forum_db && /etc/init.d/postgresql stop
 
-RUN echo "max_connections = 100" >> /etc/postgresql/$PSQLVer/main/postgresql.conf
+RUN /etc/init.d/postgresql start && \
+  psql --command "CREATE USER root WITH SUPERUSER PASSWORD 'admin';" && \
+  createdb -O root forum_db && \
+  /etc/init.d/postgresql stop
 
 EXPOSE 5432
 
-
 USER root
+
+WORKDIR /cmd
 
 COPY ./db/db.sql ./db.sql
 
+COPY --from=builder /app/main .
+
 EXPOSE 5000
 ENV PGPASSWORD admin
-RUN pwd && ls
 CMD service postgresql start && psql -h localhost -d forum_db -U root -p 5432 -a -q -f ./db.sql && ./main
