@@ -50,17 +50,17 @@ func (a *UserPostgresRepo) getUserByNicknameOrEmail(nickname string, email strin
 }
 
 func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
-	checkAlreadyExist, err := a.getUserByNicknameOrEmail(user.Nickname, user.Email)
-	if err == nil && len(*checkAlreadyExist) > 0 {
-		return checkAlreadyExist, ErrorUserAlreadyExist
-	}
-
-	_, err = a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
+	_, err := a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
 	if err != nil {
-		return nil, ErrorUserAlreadyExist
+		checkAlreadyExist, err := a.getUserByNicknameOrEmail(user.Nickname, user.Email)
+		if err == nil && len(*checkAlreadyExist) > 0 {
+			return checkAlreadyExist, ErrorUserAlreadyExist
+		} else {
+			return nil, ErrorUserAlreadyExist
+		}
 	}
 
-	userToReturn := make([]models.User, 0)
+	userToReturn := make([]models.User, 0, 1)
 	userToReturn = append(userToReturn, *user)
 
 	return &userToReturn, nil
