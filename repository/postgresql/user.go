@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	CreateUserCommand               = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4)"
-	UpdateUserCommand               = "UPDATE Users SET (fullname, about, email) = ($1, $2, $3) WHERE nickname = $4"
-	GetUserByNicknameCommand        = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1"
-	GetUserByEmailCommand           = "SELECT nickname, fullname, about, email FROM Users WHERE email = $1"
-	GetUserByNicknameOrEmailCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1 OR email = $2"
+	CreateUserCommand               = "INSERT INTO Users (nickname, fullname, about, email) VALUES ($1, $2, $3, $4);"
+	UpdateUserCommand               = "UPDATE Users SET (fullname, about, email) = ($1, $2, $3) WHERE nickname = $4;"
+	GetUserByNicknameCommand        = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1;"
+	GetUserByEmailCommand           = "SELECT nickname, fullname, about, email FROM Users WHERE email = $1;"
+	GetUserByNicknameOrEmailCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1 OR email = $2;"
 )
 
 var (

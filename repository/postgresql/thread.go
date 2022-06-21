@@ -15,24 +15,24 @@ type ThreadPostgresRepo struct {
 }
 
 const (
-	CreateThreadCommand     = "INSERT INTO Threads (title, author, message, created, slug, forum) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
-	GetThreadByIdCommand    = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE id = $1"
-	GetThreadBySlugCommand  = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE slug = $1"
-	UpdateThreadByIdCommand = "UPDATE Threads SET (title, message) = ($1, $2) WHERE id = $3"
+	CreateThreadCommand     = "INSERT INTO Threads (title, author, message, created, slug, forum) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;"
+	GetThreadByIdCommand    = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE id = $1;"
+	GetThreadBySlugCommand  = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE slug = $1;"
+	UpdateThreadByIdCommand = "UPDATE Threads SET (title, message) = ($1, $2) WHERE id = $3;"
 
-	GetPostsOnThreadFlatCommand                    = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND id > $2 ORDER BY created, id LIMIT $3"
-	GetPostsOnThreadFlatDescCommand                = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND id < $2 ORDER BY created DESC, id DESC LIMIT $3"
-	GetPostsOnThreadTreeCommand                    = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND parent_path > (SELECT parent_path FROM Posts WHERE id = $2) ORDER BY parent_path, id LIMIT $3" // TODO: попробовать потом убрать id в order by, т.к. id и так содержится в parent_path
-	GetPostsOnThreadTreeDescCommand                = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND parent_path < (SELECT parent_path FROM Posts WHERE id = $2) ORDER BY parent_path DESC LIMIT $3"
-	GetPostsOnThreadParentTreeCommand              = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 AND id > (SELECT parent_path[1] FROM Posts WHERE id = $2) ORDER BY id LIMIT $3) ORDER BY parent_path, id"                           // TODO: также попробовать убрать id в order by
-	GetPostsOnThreadParentTreeDescWithSinceCommand = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 AND id < (SELECT parent_path[1] FROM Posts WHERE id = $2) ORDER BY id DESC LIMIT $3) ORDER BY parent_path[1] DESC, parent_path, id" // TODO: также попробовать убрать id в order by
+	GetPostsOnThreadFlatCommand                    = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND id > $2 ORDER BY created, id LIMIT $3;"
+	GetPostsOnThreadFlatDescCommand                = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND id < $2 ORDER BY created DESC, id DESC LIMIT $3;"
+	GetPostsOnThreadTreeCommand                    = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND parent_path > (SELECT parent_path FROM Posts WHERE id = $2) ORDER BY parent_path, id LIMIT $3;"
+	GetPostsOnThreadTreeDescCommand                = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 AND parent_path < (SELECT parent_path FROM Posts WHERE id = $2) ORDER BY parent_path DESC LIMIT $3;"
+	GetPostsOnThreadParentTreeCommand              = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 AND id > (SELECT parent_path[1] FROM Posts WHERE id = $2) ORDER BY id LIMIT $3) ORDER BY parent_path, id;"
+	GetPostsOnThreadParentTreeDescWithSinceCommand = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 AND id < (SELECT parent_path[1] FROM Posts WHERE id = $2) ORDER BY id DESC LIMIT $3) ORDER BY parent_path[1] DESC, parent_path, id;"
 
-	GetPostsOnThreadFlatWithoutSinceCommand           = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY created, id LIMIT $2"
-	GetPostsOnThreadFlatDescWithoutSinceCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY created DESC, id DESC LIMIT $2"
-	GetPostsOnThreadTreeWithoutSinceCommand           = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY parent_path, id LIMIT $2" // TODO: попробовать потом убрать id в order by, т.к. id и так содержится в parent_path
-	GetPostsOnThreadTreeDescWithoutSinceCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY parent_path DESC LIMIT $2"
-	GetPostsOnThreadParentTreeWithoutSinceCommand     = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 ORDER BY id LIMIT $2) ORDER BY parent_path, id"                           // TODO: также попробовать убрать id в order by
-	GetPostsOnThreadParentTreeDescWithoutSinceCommand = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 ORDER BY id DESC LIMIT $2) ORDER BY parent_path[1] DESC, parent_path, id" // TODO: также попробовать убрать id в order by
+	GetPostsOnThreadFlatWithoutSinceCommand           = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY created, id LIMIT $2;"
+	GetPostsOnThreadFlatDescWithoutSinceCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY created DESC, id DESC LIMIT $2;"
+	GetPostsOnThreadTreeWithoutSinceCommand           = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY parent_path, id LIMIT $2;"
+	GetPostsOnThreadTreeDescWithoutSinceCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE thread = $1 ORDER BY parent_path DESC LIMIT $2;"
+	GetPostsOnThreadParentTreeWithoutSinceCommand     = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 ORDER BY id LIMIT $2) ORDER BY parent_path, id;"
+	GetPostsOnThreadParentTreeDescWithoutSinceCommand = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE parent_path[1] IN (SELECT id FROM Posts WHERE thread = $1 AND parent = 0 ORDER BY id DESC LIMIT $2) ORDER BY parent_path[1] DESC, parent_path, id;"
 )
 
 var (

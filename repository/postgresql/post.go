@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	GetPostCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE id = $1"
-	GetPostAuthorCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1"
-	GetPostForumCommand  = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1"
-	GetPostThreadCommand = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE id = $1"
-	UpdatePostCommand    = "UPDATE Posts SET (message, isEdited) = ($1, true) WHERE id = $2"
+	GetPostCommand       = "SELECT id, parent, author, message, isEdited, forum, thread, created FROM Posts WHERE id = $1;"
+	GetPostAuthorCommand = "SELECT nickname, fullname, about, email FROM Users WHERE nickname = $1;"
+	GetPostForumCommand  = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1;"
+	GetPostThreadCommand = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE id = $1;"
+	UpdatePostCommand    = "UPDATE Posts SET (message, isEdited) = ($1, true) WHERE id = $2;"
 )
 
 var (

@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	GetVoteByNicknameAndThreadCommand = "SELECT nickname, thread, voice FROM Votes WHERE nickname = $1 AND thread = $2"
-	CreateVoteCommand                 = "INSERT INTO Votes (nickname, thread, voice) VALUES ($1, $2, $3)"
-	UpdateVoteCommand                 = "UPDATE Votes SET voice = $1 WHERE nickname = $2 AND thread = $3 AND voice != $1"
+	GetVoteByNicknameAndThreadCommand = "SELECT nickname, thread, voice FROM Votes WHERE nickname = $1 AND thread = $2;"
+	CreateVoteCommand                 = "INSERT INTO Votes (nickname, thread, voice) VALUES ($1, $2, $3);"
+	UpdateVoteCommand                 = "UPDATE Votes SET voice = $1 WHERE nickname = $2 AND thread = $3 AND voice != $1;"
 )
 
 type VotePostgresRepo struct {

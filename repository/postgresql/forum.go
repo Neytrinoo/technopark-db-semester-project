@@ -10,18 +10,18 @@ import (
 )
 
 const (
-	CreateForumCommand = "INSERT INTO Forums (title, \"user\", slug) VALUES ($1, $2, $3)"
-	GetForumCommand    = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1"
+	CreateForumCommand = "INSERT INTO Forums (title, \"user\", slug) VALUES ($1, $2, $3);"
+	GetForumCommand    = "SELECT title, \"user\", slug, posts, threads FROM Forums WHERE slug = $1;"
 
-	GetUsersOnForumCommand                 = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname > $2 ORDER BY nickname LIMIT $3"
-	GetUsersOnForumDescCommand             = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname < $2 ORDER BY nickname DESC LIMIT $3"
-	GetUsersOnForumWithoutSinceCommand     = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname LIMIT $2"
-	GetUsersOnForumWithoutSinceDescCommand = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname DESC LIMIT $2"
+	GetUsersOnForumCommand                 = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname > $2 ORDER BY nickname LIMIT $3;"
+	GetUsersOnForumDescCommand             = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 AND nickname < $2 ORDER BY nickname DESC LIMIT $3;"
+	GetUsersOnForumWithoutSinceCommand     = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname LIMIT $2;"
+	GetUsersOnForumWithoutSinceDescCommand = "SELECT nickname, fullname, about, email FROM ForumUsers WHERE forum = $1 ORDER BY nickname DESC LIMIT $2;"
 
-	GetThreadsOnForumCommand                 = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created >= $2 ORDER BY created LIMIT $3"
-	GetThreadsOnForumDescCommand             = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3"
-	GetThreadsOnForumWithoutSinceCommand     = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 ORDER BY created LIMIT $2"
-	GetThreadsOnForumWithoutSinceDescCommand = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 ORDER BY created DESC LIMIT $2"
+	GetThreadsOnForumCommand                 = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created >= $2 ORDER BY created LIMIT $3;"
+	GetThreadsOnForumDescCommand             = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3;"
+	GetThreadsOnForumWithoutSinceCommand     = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 ORDER BY created LIMIT $2;"
+	GetThreadsOnForumWithoutSinceDescCommand = "SELECT id, title, author, forum, message, votes, slug, created FROM Threads WHERE forum = $1 ORDER BY created DESC LIMIT $2;"
 )
 
 var (
