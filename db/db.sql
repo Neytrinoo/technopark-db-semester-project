@@ -20,7 +20,6 @@ DROP INDEX forum_users_forum;
 -- Tables
 CREATE UNLOGGED TABLE if not exists Users
 (
-    id       bigserial          NOT NULL,
     nickname citext COLLATE "C" NOT NULL PRIMARY KEY, -- для побайтового сравнения в нижнем регистре добавляем COLLATE "C"
     fullname text               NOT NULL,
     about    text,
@@ -29,7 +28,6 @@ CREATE UNLOGGED TABLE if not exists Users
 
 CREATE UNLOGGED TABLE if not exists Forums
 (
-    id      bigserial,
     slug    citext             NOT NULL PRIMARY KEY,
     title   text               NOT NULL,
     "user"  citext COLLATE "C" NOT NULL REFERENCES Users (nickname),
@@ -69,14 +67,15 @@ CREATE UNLOGGED TABLE IF NOT EXISTS ForumUsers
     about    text,
     email    citext             NOT NULL,
     forum    citext             NOT NULL REFERENCES Forums (slug),
-    CONSTRAINT nickname_forum_unique UNIQUE (nickname, forum)
+    PRIMARY KEY (nickname, forum)
 );
 
 CREATE UNLOGGED TABLE if not exists Votes
 (
     nickname citext COLLATE "C" NOT NULL REFERENCES Users (nickname),
     thread   serial             NOT NULL REFERENCES Threads (id),
-    voice    integer            NOT NULL
+    voice    integer            NOT NULL,
+    PRIMARY KEY (nickname, thread)
 );
 
 
@@ -212,7 +211,7 @@ CREATE INDEX IF NOT EXISTS  user_nickname_email ON Users (nickname, email);
 
 -- Vote
 --CREATE UNIQUE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread);
-CREATE UNIQUE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread, voice);
+CREATE INDEX IF NOT EXISTS search_user_vote ON Votes (nickname, thread, voice);
 
 -- Forum
 CREATE INDEX IF NOT EXISTS forum_slug_hash ON Forums using hash (slug);
