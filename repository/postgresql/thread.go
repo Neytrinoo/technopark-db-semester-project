@@ -45,15 +45,15 @@ func NewThreadPostgresRepo(db *pgxpool.Pool) domain.ThreadRepo {
 	return &ThreadPostgresRepo{Db: db}
 }
 
-func (a *ThreadPostgresRepo) Create(forumSlug string, thread *models.ThreadCreate) (*models.Thread, error) {
+func (a *ThreadPostgresRepo) Create(ctx context.Context, forumSlug string, thread *models.ThreadCreate) (*models.Thread, error) {
 	var forum models.Forum
-	err := a.Db.QueryRow(context.Background(), GetForumCommand, forumSlug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	err := a.Db.QueryRow(ctx, GetForumCommand, forumSlug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return nil, ErrorNoAuthorOrForum
 	}
 
 	var user models.User
-	err = a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, thread.Author).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+	err = a.Db.QueryRow(ctx, GetUserByNicknameCommand, thread.Author).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	if err != nil {
 		return nil, ErrorNoAuthorOrForum
 	}
@@ -61,16 +61,16 @@ func (a *ThreadPostgresRepo) Create(forumSlug string, thread *models.ThreadCreat
 
 	if thread.Slug != "" {
 		var threadAlreadyExist models.Thread
-		err = a.Db.QueryRow(context.Background(), GetThreadBySlugCommand, thread.Slug).Scan(&threadAlreadyExist.Id, &threadAlreadyExist.Title, &threadAlreadyExist.Author, &threadAlreadyExist.Forum, &threadAlreadyExist.Message, &threadAlreadyExist.Votes, &threadAlreadyExist.Slug, &threadAlreadyExist.Created)
+		err = a.Db.QueryRow(ctx, GetThreadBySlugCommand, thread.Slug).Scan(&threadAlreadyExist.Id, &threadAlreadyExist.Title, &threadAlreadyExist.Author, &threadAlreadyExist.Forum, &threadAlreadyExist.Message, &threadAlreadyExist.Votes, &threadAlreadyExist.Slug, &threadAlreadyExist.Created)
 		if err == nil {
 			return &threadAlreadyExist, ErrorThreadAlreadyExist
 		}
 	}
 
 	var id int32
-	err = a.Db.QueryRow(context.Background(), CreateThreadCommand, thread.Title, thread.Author, thread.Message, thread.Created, thread.Slug, thread.Forum).Scan(&id)
+	err = a.Db.QueryRow(ctx, CreateThreadCommand, thread.Title, thread.Author, thread.Message, thread.Created, thread.Slug, thread.Forum).Scan(&id)
 	if err != nil {
-		threadAlreadyExist, _ := a.Get(thread.Slug)
+		threadAlreadyExist, _ := a.Get(ctx, thread.Slug)
 		return threadAlreadyExist, ErrorThreadAlreadyExist
 	}
 
@@ -88,14 +88,14 @@ func (a *ThreadPostgresRepo) Create(forumSlug string, thread *models.ThreadCreat
 	return threadToReturn, nil
 }
 
-func (a *ThreadPostgresRepo) Get(threadSlugOrId string) (*models.Thread, error) {
+func (a *ThreadPostgresRepo) Get(ctx context.Context, threadSlugOrId string) (*models.Thread, error) {
 	var thread models.Thread
 	id, err := strconv.Atoi(threadSlugOrId)
 
 	if err != nil {
-		err = a.Db.QueryRow(context.Background(), GetThreadBySlugCommand, threadSlugOrId).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		err = a.Db.QueryRow(ctx, GetThreadBySlugCommand, threadSlugOrId).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	} else {
-		err = a.Db.QueryRow(context.Background(), GetThreadByIdCommand, id).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		err = a.Db.QueryRow(ctx, GetThreadByIdCommand, id).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	}
 
 	if err != nil {
@@ -105,8 +105,8 @@ func (a *ThreadPostgresRepo) Get(threadSlugOrId string) (*models.Thread, error) 
 	return &thread, nil
 }
 
-func (a *ThreadPostgresRepo) Update(threadSlugOrId string, updateData *models.ThreadUpdate) (*models.Thread, error) {
-	thread, err := a.Get(threadSlugOrId)
+func (a *ThreadPostgresRepo) Update(ctx context.Context, threadSlugOrId string, updateData *models.ThreadUpdate) (*models.Thread, error) {
+	thread, err := a.Get(ctx, threadSlugOrId)
 	if err != nil {
 		return nil, ErrorThreadDoesNotExist
 	}
@@ -122,13 +122,13 @@ func (a *ThreadPostgresRepo) Update(threadSlugOrId string, updateData *models.Th
 		thread.Title = updateData.Title
 	}
 
-	_, _ = a.Db.Exec(context.Background(), UpdateThreadByIdCommand, updateData.Title, updateData.Message, thread.Id)
+	_, _ = a.Db.Exec(ctx, UpdateThreadByIdCommand, updateData.Title, updateData.Message, thread.Id)
 
 	return thread, nil
 }
 
-func (a *ThreadPostgresRepo) GetPosts(slugOrId string, getSettings *models.ThreadPostRequest) (*[]models.Post, error) {
-	thread, err := a.Get(slugOrId)
+func (a *ThreadPostgresRepo) GetPosts(ctx context.Context, slugOrId string, getSettings *models.ThreadPostRequest) (*[]models.Post, error) {
+	thread, err := a.Get(ctx, slugOrId)
 	if err != nil {
 		return nil, ErrorThreadDoesNotExist
 	}
@@ -138,43 +138,43 @@ func (a *ThreadPostgresRepo) GetPosts(slugOrId string, getSettings *models.Threa
 	if getSettings.Sort == models.Flat {
 		if getSettings.Desc {
 			if getSettings.Since != -1 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadFlatDescCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadFlatDescCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadFlatDescWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadFlatDescWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		} else {
 			if getSettings.Since != -1 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadFlatCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadFlatCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadFlatWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadFlatWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		}
 	} else if getSettings.Sort == models.Tree {
 		if getSettings.Desc {
 			if getSettings.Since != -1 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadTreeDescCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadTreeDescCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadTreeDescWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadTreeDescWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		} else {
 			if getSettings.Since != -1 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadTreeCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadTreeCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadTreeWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadTreeWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		}
 	} else if getSettings.Sort == models.ParentTree {
 		if getSettings.Desc {
 			if getSettings.Since > 0 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadParentTreeDescWithSinceCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadParentTreeDescWithSinceCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadParentTreeDescWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadParentTreeDescWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		} else {
 			if getSettings.Since != -1 {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadParentTreeCommand, thread.Id, getSettings.Since, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadParentTreeCommand, thread.Id, getSettings.Since, getSettings.Limit)
 			} else {
-				rows, _ = a.Db.Query(context.Background(), GetPostsOnThreadParentTreeWithoutSinceCommand, thread.Id, getSettings.Limit)
+				rows, _ = a.Db.Query(ctx, GetPostsOnThreadParentTreeWithoutSinceCommand, thread.Id, getSettings.Limit)
 			}
 		}
 	}

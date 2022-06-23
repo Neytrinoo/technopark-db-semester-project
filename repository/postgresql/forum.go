@@ -37,16 +37,16 @@ func NewForumPostgresRepo(db *pgxpool.Pool) domain.ForumRepo {
 	return &ForumPostgresRepo{Db: db}
 }
 
-func (a *ForumPostgresRepo) Create(forum *models.ForumCreate) (*models.Forum, error) {
+func (a *ForumPostgresRepo) Create(ctx context.Context, forum *models.ForumCreate) (*models.Forum, error) {
 	var user models.User
-	err := a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, forum.User).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+	err := a.Db.QueryRow(ctx, GetUserByNicknameCommand, forum.User).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	if err != nil {
 		return nil, ErrorUserDoesNotExist
 	}
 
-	_, err = a.Db.Exec(context.Background(), CreateForumCommand, forum.Title, user.Nickname, forum.Slug)
+	_, err = a.Db.Exec(ctx, CreateForumCommand, forum.Title, user.Nickname, forum.Slug)
 	if err != nil {
-		forumAlreadyExist, _ := a.Get(forum.Slug)
+		forumAlreadyExist, _ := a.Get(ctx, forum.Slug)
 		return forumAlreadyExist, ErrorForumAlreadyExist
 	}
 
@@ -61,10 +61,10 @@ func (a *ForumPostgresRepo) Create(forum *models.ForumCreate) (*models.Forum, er
 	return forumToReturn, nil
 }
 
-func (a *ForumPostgresRepo) Get(slug string) (*models.Forum, error) {
+func (a *ForumPostgresRepo) Get(ctx context.Context, slug string) (*models.Forum, error) {
 	var forum models.Forum
 
-	err := a.Db.QueryRow(context.Background(), GetForumCommand, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	err := a.Db.QueryRow(ctx, GetForumCommand, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
 	}
@@ -72,26 +72,26 @@ func (a *ForumPostgresRepo) Get(slug string) (*models.Forum, error) {
 	return &forum, nil
 }
 
-func (a *ForumPostgresRepo) GetUsers(getSettings *models.GetForumUsers) (*[]models.User, error) {
+func (a *ForumPostgresRepo) GetUsers(ctx context.Context, getSettings *models.GetForumUsers) (*[]models.User, error) {
 	var err error
 	var rows pgx.Rows
 
-	_, err = a.Get(getSettings.Slug)
+	_, err = a.Get(ctx, getSettings.Slug)
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
 	}
 
 	if getSettings.Desc {
 		if getSettings.Since == "" {
-			rows, err = a.Db.Query(context.Background(), GetUsersOnForumWithoutSinceDescCommand, getSettings.Slug, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetUsersOnForumWithoutSinceDescCommand, getSettings.Slug, getSettings.Limit)
 		} else {
-			rows, err = a.Db.Query(context.Background(), GetUsersOnForumDescCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetUsersOnForumDescCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
 		}
 	} else {
 		if getSettings.Since == "" {
-			rows, err = a.Db.Query(context.Background(), GetUsersOnForumWithoutSinceCommand, getSettings.Slug, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetUsersOnForumWithoutSinceCommand, getSettings.Slug, getSettings.Limit)
 		} else {
-			rows, err = a.Db.Query(context.Background(), GetUsersOnForumCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetUsersOnForumCommand, getSettings.Slug, getSettings.Since, getSettings.Limit)
 		}
 	}
 
@@ -113,25 +113,25 @@ func (a *ForumPostgresRepo) GetUsers(getSettings *models.GetForumUsers) (*[]mode
 	return &users, nil
 }
 
-func (a *ForumPostgresRepo) GetThreads(slug string, getSettings *models.GetForumThreads) (*[]models.Thread, error) {
+func (a *ForumPostgresRepo) GetThreads(ctx context.Context, slug string, getSettings *models.GetForumThreads) (*[]models.Thread, error) {
 	var rows pgx.Rows
 
-	_, err := a.Get(slug)
+	_, err := a.Get(ctx, slug)
 	if err != nil {
 		return nil, ErrorForumDoesNotExist
 	}
 
 	if getSettings.Desc {
 		if getSettings.Since == "" {
-			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumWithoutSinceDescCommand, slug, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetThreadsOnForumWithoutSinceDescCommand, slug, getSettings.Limit)
 		} else {
-			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumDescCommand, slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetThreadsOnForumDescCommand, slug, getSettings.Since, getSettings.Limit)
 		}
 	} else {
 		if getSettings.Since == "" {
-			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumWithoutSinceCommand, slug, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetThreadsOnForumWithoutSinceCommand, slug, getSettings.Limit)
 		} else {
-			rows, err = a.Db.Query(context.Background(), GetThreadsOnForumCommand, slug, getSettings.Since, getSettings.Limit)
+			rows, err = a.Db.Query(ctx, GetThreadsOnForumCommand, slug, getSettings.Since, getSettings.Limit)
 		}
 	}
 

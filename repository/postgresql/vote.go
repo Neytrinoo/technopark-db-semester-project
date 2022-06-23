@@ -22,13 +22,13 @@ func NewVotePostgresRepo(db *pgxpool.Pool) domain.VoteRepo {
 	return &VotePostgresRepo{Db: db}
 }
 
-func (a *VotePostgresRepo) Create(threadSlugOrId string, vote *models.VoteCreate) (*models.Thread, error) {
+func (a *VotePostgresRepo) Create(ctx context.Context, threadSlugOrId string, vote *models.VoteCreate) (*models.Thread, error) {
 	var thread models.Thread
 	id, err := strconv.Atoi(threadSlugOrId)
 	if err != nil {
-		err = a.Db.QueryRow(context.Background(), GetThreadBySlugCommand, threadSlugOrId).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		err = a.Db.QueryRow(ctx, GetThreadBySlugCommand, threadSlugOrId).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	} else {
-		err = a.Db.QueryRow(context.Background(), GetThreadByIdCommand, id).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		err = a.Db.QueryRow(ctx, GetThreadByIdCommand, id).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 	}
 
 	if err != nil {
@@ -36,15 +36,15 @@ func (a *VotePostgresRepo) Create(threadSlugOrId string, vote *models.VoteCreate
 	}
 
 	var checkVote models.Vote
-	err = a.Db.QueryRow(context.Background(), GetVoteByNicknameAndThreadCommand, vote.Nickname, thread.Id).Scan(&checkVote.Nickname, &checkVote.Thread, &checkVote.Voice)
+	err = a.Db.QueryRow(ctx, GetVoteByNicknameAndThreadCommand, vote.Nickname, thread.Id).Scan(&checkVote.Nickname, &checkVote.Thread, &checkVote.Voice)
 	if err != nil {
-		_, err = a.Db.Exec(context.Background(), CreateVoteCommand, vote.Nickname, thread.Id, vote.Voice)
+		_, err = a.Db.Exec(ctx, CreateVoteCommand, vote.Nickname, thread.Id, vote.Voice)
 		if err != nil {
 			return nil, ErrorUserDoesNotExist
 		}
 		thread.Votes += vote.Voice
 	} else {
-		_, _ = a.Db.Exec(context.Background(), UpdateVoteCommand, vote.Voice, vote.Nickname, thread.Id)
+		_, _ = a.Db.Exec(ctx, UpdateVoteCommand, vote.Voice, vote.Nickname, thread.Id)
 		if vote.Voice != checkVote.Voice {
 			thread.Votes += 2 * vote.Voice
 		}

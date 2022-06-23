@@ -1,8 +1,9 @@
 package delivery
 
 import (
-	"github.com/labstack/echo/v4"
-	"net/http"
+	"context"
+	"encoding/json"
+	"github.com/valyala/fasthttp"
 	"technopark-db-semester-project/domain"
 )
 
@@ -15,15 +16,26 @@ func MakeServiceHandler(serviceRepo domain.ServiceRepo) ServiceHandler {
 }
 
 // GET service/status
-func (a *ServiceHandler) GetInfo(c echo.Context) error {
-	result, _ := a.serviceRepo.GetInfo()
-	return c.JSON(http.StatusOK, result)
+func (a *ServiceHandler) GetInfo(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
+	result, _ := a.serviceRepo.GetInfo(uctx)
+
+	body, _ := json.Marshal(result)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }
 
 // POST service/clear
-func (a *ServiceHandler) Clear(c echo.Context) error {
-	_ = a.serviceRepo.Clear()
-	c.Response().Status = http.StatusOK
+func (a *ServiceHandler) Clear(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
 
-	return nil
+	_ = a.serviceRepo.Clear(uctx)
+	
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }

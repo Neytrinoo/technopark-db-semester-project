@@ -1,9 +1,10 @@
 package delivery
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
-	"github.com/labstack/echo/v4"
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"strconv"
 	"strings"
 	"technopark-db-semester-project/domain"
@@ -20,54 +21,83 @@ func MakePostHandler(postRepo domain.PostRepo) PostHandler {
 }
 
 // POST thread/{slug_or_id}/create
-func (a *PostHandler) Create(c echo.Context) error {
-	slugOrId := c.Param("slug_or_id")
-	postsCreate := make([]models.PostCreate, 0)
-	_ = c.Bind(&postsCreate)
+func (a *PostHandler) Create(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
 
-	posts, err := a.postRepo.Create(c.Request().Context(), slugOrId, &postsCreate)
+	slugOrId := ctx.UserValue("slug_or_id").(string)
+	postsCreate := make([]models.PostCreate, 0)
+
+	_ = json.Unmarshal(ctx.PostBody(), &postsCreate)
+
+	posts, err := a.postRepo.Create(uctx, slugOrId, &postsCreate)
 	if err != nil {
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
 		if errors.Is(err, postgresql.ErrorThreadDoesNotExist) {
-			return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
 		} else if errors.Is(err, postgresql.ErrorParentPostDoesNotExist) {
-			return c.JSON(http.StatusConflict, GetErrorMessage(err))
+			ctx.SetStatusCode(fasthttp.StatusConflict)
 		} else if errors.Is(err, postgresql.ErrorAuthorDoesNotExist) {
-			return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
 		}
+		return
 	}
 
-	return c.JSON(http.StatusCreated, posts)
+	body, _ := json.Marshal(posts)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusCreated)
+
+	return
 }
 
 // GET post/{id}/details
-func (a *PostHandler) Get(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+func (a *PostHandler) Get(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
+	id, _ := strconv.Atoi(ctx.UserValue("id").(string))
 
-	related := c.QueryParam("related")
+	related := string(ctx.QueryArgs().Peek("related"))
 
 	postGet := &models.PostGetRequest{
 		Related: strings.Split(related, ","),
 	}
 
-	posts, err := a.postRepo.Get(int64(id), postGet)
+	posts, err := a.postRepo.Get(uctx, int64(id), postGet)
 
 	if err != nil {
-		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
 	}
 
-	return c.JSON(http.StatusOK, posts)
+	body, _ := json.Marshal(posts)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }
 
 // POST post/{id}/details
-func (a *PostHandler) Update(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+func (a *PostHandler) Update(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
+	id, _ := strconv.Atoi(ctx.UserValue("id").(string))
 	var postUpdate models.PostUpdate
-	_ = c.Bind(&postUpdate)
 
-	post, err := a.postRepo.Update(int64(id), &postUpdate)
+	_ = json.Unmarshal(ctx.PostBody(), &postUpdate)
+
+	post, err := a.postRepo.Update(uctx, int64(id), &postUpdate)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
 	} else {
-		return c.JSON(http.StatusOK, post)
+		body, _ := json.Marshal(post)
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		return
 	}
 }

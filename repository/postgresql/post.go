@@ -45,9 +45,9 @@ func isIn(arr *[]string, find string) bool {
 	return false
 }
 
-func (a *PostPostgresRepo) Get(id int64, getSettings *models.PostGetRequest) (*models.PostGetResult, error) {
+func (a *PostPostgresRepo) Get(ctx context.Context, id int64, getSettings *models.PostGetRequest) (*models.PostGetResult, error) {
 	var post models.Post
-	err := a.Db.QueryRow(context.Background(), GetPostCommand, id).Scan(&post.Id, &post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+	err := a.Db.QueryRow(ctx, GetPostCommand, id).Scan(&post.Id, &post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
 	if err != nil {
 		return nil, ErrorPostDoesNotExist
 	}
@@ -57,26 +57,26 @@ func (a *PostPostgresRepo) Get(id int64, getSettings *models.PostGetRequest) (*m
 
 	if isIn(&getSettings.Related, models.RelatedUser) {
 		author := &models.User{}
-		_ = a.Db.QueryRow(context.Background(), GetPostAuthorCommand, post.Author).Scan(&author.Nickname, &author.Fullname, &author.About, &author.Email)
+		_ = a.Db.QueryRow(ctx, GetPostAuthorCommand, post.Author).Scan(&author.Nickname, &author.Fullname, &author.About, &author.Email)
 		postResult.Author = author
 	}
 	if isIn(&getSettings.Related, models.RelatedThread) {
 		thread := &models.Thread{}
-		_ = a.Db.QueryRow(context.Background(), GetPostThreadCommand, post.Thread).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		_ = a.Db.QueryRow(ctx, GetPostThreadCommand, post.Thread).Scan(&thread.Id, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
 		postResult.Thread = thread
 	}
 	if isIn(&getSettings.Related, models.RelatedForum) {
 		forum := &models.Forum{}
-		_ = a.Db.QueryRow(context.Background(), GetPostForumCommand, post.Forum).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+		_ = a.Db.QueryRow(ctx, GetPostForumCommand, post.Forum).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 		postResult.Forum = forum
 	}
 
 	return &postResult, nil
 }
 
-func (a *PostPostgresRepo) Update(id int64, updateDate *models.PostUpdate) (*models.Post, error) {
+func (a *PostPostgresRepo) Update(ctx context.Context, id int64, updateDate *models.PostUpdate) (*models.Post, error) {
 	var post models.Post
-	err := a.Db.QueryRow(context.Background(), GetPostCommand, id).Scan(&post.Id, &post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+	err := a.Db.QueryRow(ctx, GetPostCommand, id).Scan(&post.Id, &post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
 	if err != nil {
 		return nil, ErrorPostDoesNotExist
 	}
@@ -85,21 +85,21 @@ func (a *PostPostgresRepo) Update(id int64, updateDate *models.PostUpdate) (*mod
 		return &post, nil
 	}
 
-	_ = a.Db.QueryRow(context.Background(), UpdatePostCommand, updateDate.Message, id)
+	_ = a.Db.QueryRow(ctx, UpdatePostCommand, updateDate.Message, id)
 	post.Message = updateDate.Message
 	post.IsEdited = true
 
 	return &post, nil
 }
 
-func (a *PostPostgresRepo) CheckParentAndAuthor(post *models.PostCreate) error {
+func (a *PostPostgresRepo) CheckParentAndAuthor(ctx context.Context, post *models.PostCreate) error {
 	if post.Parent != 0 {
-		_, err := a.Db.Exec(context.Background(), GetPostCommand, post.Parent)
+		_, err := a.Db.Exec(ctx, GetPostCommand, post.Parent)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := a.Db.Exec(context.Background(), GetUserByNicknameCommand, post.Author)
+	_, err := a.Db.Exec(ctx, GetUserByNicknameCommand, post.Author)
 
 	return err
 }
@@ -127,7 +127,7 @@ func (a *PostPostgresRepo) Create(ctx context.Context, threadSlugOrId string, po
 		return &emptyPosts, nil
 	}
 
-	if a.CheckParentAndAuthor(&(*posts)[0]) != nil {
+	if a.CheckParentAndAuthor(ctx, &(*posts)[0]) != nil {
 		return nil, ErrorParentPostDoesNotExist
 	}
 
@@ -140,13 +140,13 @@ func (a *PostPostgresRepo) Create(ctx context.Context, threadSlugOrId string, po
 	for ind, post := range *posts {
 		if post.Parent != 0 {
 			var parentPost models.Post
-			err = a.Db.QueryRow(context.Background(), GetPostCommand, post.Parent).Scan(&parentPost.Id, &parentPost.Parent, &parentPost.Author, &parentPost.Message, &parentPost.IsEdited, &parentPost.Forum, &parentPost.Thread, &parentPost.Created)
+			err = a.Db.QueryRow(ctx, GetPostCommand, post.Parent).Scan(&parentPost.Id, &parentPost.Parent, &parentPost.Author, &parentPost.Message, &parentPost.IsEdited, &parentPost.Forum, &parentPost.Thread, &parentPost.Created)
 			if err != nil || parentPost.Thread != thread.Id {
 				return nil, ErrorParentPostDoesNotExist
 			}
 		}
 		var author models.User
-		err = a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, post.Author).Scan(&author.Nickname, &author.Fullname, &author.About, &author.Email)
+		err = a.Db.QueryRow(ctx, GetUserByNicknameCommand, post.Author).Scan(&author.Nickname, &author.Fullname, &author.About, &author.Email)
 		if err != nil {
 			return nil, ErrorAuthorDoesNotExist
 		}

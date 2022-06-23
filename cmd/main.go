@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"github.com/fasthttp/router"
 	_ "github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/valyala/fasthttp"
 	"log"
 	"technopark-db-semester-project/system"
 	"time"
@@ -22,36 +26,51 @@ func addTimeLog(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func main() {
-	e := echo.New()
+	//router := echo.New()
 
 	db := system.InitDb()
 	defer db.Close()
 	userRepo, forumRepo, threadRepo, postRepo, voteRepo, serviceRepo := system.InitRepos(db)
 	userHandler, forumHandler, threadHandler, postHandler, voteHandler, serviceHandler := system.InitHandlers(userRepo, forumRepo, threadRepo, postRepo, voteRepo, serviceRepo)
+	fasthttpRouter := router.New()
 
 	// api routes
 
-	e.POST("api/forum/create", forumHandler.Create)
-	e.GET("api/forum/:slug/details", forumHandler.Get)
-	e.POST("api/forum/:slug/create", threadHandler.Create)
-	e.GET("api/forum/:slug/users", forumHandler.GetUsers)
-	e.GET("api/forum/:slug/threads", forumHandler.GetThreads)
-	e.GET("api/post/:id/details", postHandler.Get)
-	e.POST("api/post/:id/details", postHandler.Update)
+	fasthttpRouter.POST("/api/forum/create", forumHandler.Create)
+	fasthttpRouter.GET("/api/forum/{slug}/details", forumHandler.Get)
+	fasthttpRouter.POST("/api/forum/{slug}/create", threadHandler.Create)
+	fasthttpRouter.GET("/api/forum/{slug}/users", forumHandler.GetUsers)
+	fasthttpRouter.GET("/api/forum/{slug}/threads", forumHandler.GetThreads)
+	fasthttpRouter.GET("/api/post/{id}/details", postHandler.Get)
+	fasthttpRouter.POST("/api/post/{id}/details", postHandler.Update)
 
-	e.POST("api/thread/:slug_or_id/create", postHandler.Create)
-	e.GET("api/thread/:slug_or_id/details", threadHandler.Get)
-	e.POST("api/thread/:slug_or_id/details", threadHandler.Update)
-	e.GET("api/thread/:slug_or_id/posts", threadHandler.GetPosts)
-	e.POST("api/thread/:slug_or_id/vote", voteHandler.Create)
-	e.POST("api/user/:nickname/create", userHandler.Create)
-	e.GET("api/user/:nickname/profile", userHandler.Get)
-	e.POST("api/user/:nickname/profile", userHandler.Update)
+	fasthttpRouter.POST("/api/thread/{slug_or_id}/create", postHandler.Create)
+	fasthttpRouter.GET("/api/thread/{slug_or_id}/details", threadHandler.Get)
+	fasthttpRouter.POST("/api/thread/{slug_or_id}/details", threadHandler.Update)
+	fasthttpRouter.GET("/api/thread/{slug_or_id}/posts", threadHandler.GetPosts)
+	fasthttpRouter.POST("/api/thread/{slug_or_id}/vote", voteHandler.Create)
+	fasthttpRouter.POST("/api/user/{nickname}/create", userHandler.Create)
+	fasthttpRouter.GET("/api/user/{nickname}/profile", userHandler.Get)
+	fasthttpRouter.POST("/api/user/{nickname}/profile", userHandler.Update)
 
-	e.GET("api/service/status", serviceHandler.GetInfo)
-	e.POST("api/service/clear", serviceHandler.Clear)
+	fasthttpRouter.GET("/api/service/status", serviceHandler.GetInfo)
+	fasthttpRouter.POST("/api/service/clear", serviceHandler.Clear)
 
-	if err := e.Start("0.0.0.0:5000"); err != nil {
-		log.Fatalln("server error:", err)
+	ctx := context.Background()
+
+	err := fasthttp.ListenAndServe(
+		"0.0.0.0:5000",
+		func(fasthttpCtx *fasthttp.RequestCtx) {
+			fasthttpCtx.SetUserValue("ctx", ctx)
+			fasthttpRouter.Handler(fasthttpCtx)
+		},
+	)
+
+	if err != nil {
+		fmt.Println(err)
 	}
+	/*
+		if err := router.Start("0.0.0.0:5000"); err != nil {
+			log.Fatalln("server error:", err)
+		}*/
 }

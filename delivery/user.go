@@ -1,9 +1,10 @@
 package delivery
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
-	"github.com/labstack/echo/v4"
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 	"technopark-db-semester-project/repository/postgresql"
@@ -18,45 +19,75 @@ func MakeUserHandler(userRepo domain.UserRepo) UserHandler {
 }
 
 // POST user/{nickname}/create
-func (a *UserHandler) Create(c echo.Context) error {
-	nickname := c.Param("nickname")
+func (a *UserHandler) Create(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
+
+	nickname := ctx.UserValue("nickname").(string)
 	var user models.User
-	_ = c.Bind(&user)
+	_ = json.Unmarshal(ctx.PostBody(), &user)
 	user.Nickname = nickname
 
-	userAfterCreate, err := a.userRepo.Create(&user)
+	userAfterCreate, err := a.userRepo.Create(uctx, &user)
 	if err != nil {
-		return c.JSON(http.StatusConflict, userAfterCreate)
+		body, _ := json.Marshal(userAfterCreate)
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusConflict)
+		return
 	}
 
-	return c.JSON(http.StatusCreated, (*userAfterCreate)[0])
+	body, _ := json.Marshal((*userAfterCreate)[0])
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusCreated)
+
+	return
 }
 
 // GET /user/{nickname}/profile
-func (a *UserHandler) Get(c echo.Context) error {
-	nickname := c.Param("nickname")
-	user, err := a.userRepo.Get(nickname)
+func (a *UserHandler) Get(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
+
+	nickname := ctx.UserValue("nickname").(string)
+	user, err := a.userRepo.Get(uctx, nickname)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
 	}
 
-	return c.JSON(http.StatusOK, user)
+	body, _ := json.Marshal(user)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }
 
 // POST /user/{nickname}/profile
-func (a *UserHandler) Update(c echo.Context) error {
-	nickname := c.Param("nickname")
-	var updateData models.UserUpdate
-	_ = c.Bind(&updateData)
+func (a *UserHandler) Update(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
 
-	user, err := a.userRepo.Update(nickname, &updateData)
+	nickname := ctx.UserValue("nickname").(string)
+	var updateData models.UserUpdate
+	_ = json.Unmarshal(ctx.PostBody(), &updateData)
+
+	user, err := a.userRepo.Update(uctx, nickname, &updateData)
 	if err != nil {
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
 		if errors.Is(err, postgresql.ErrorUserDoesNotExist) {
-			return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
 		} else if errors.Is(err, postgresql.ErrorConflictUpdateUser) {
-			return c.JSON(http.StatusConflict, GetErrorMessage(err))
+			ctx.SetStatusCode(fasthttp.StatusConflict)
 		}
+		return
 	}
 
-	return c.JSON(http.StatusOK, user)
+	body, _ := json.Marshal(user)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }

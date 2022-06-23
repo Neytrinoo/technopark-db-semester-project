@@ -1,8 +1,9 @@
 package delivery
 
 import (
-	"github.com/labstack/echo/v4"
-	"net/http"
+	"context"
+	"encoding/json"
+	"github.com/valyala/fasthttp"
 	"technopark-db-semester-project/domain"
 	"technopark-db-semester-project/domain/models"
 )
@@ -16,16 +17,26 @@ func MakeVoteHandler(voteRepo domain.VoteRepo) VoteHandler {
 }
 
 // POST thread/{slug_or_id}/vote
-func (a *VoteHandler) Create(c echo.Context) error {
-	slugOrId := c.Param("slug_or_id")
-	var voteCreate models.VoteCreate
-	_ = c.Bind(&voteCreate)
+func (a *VoteHandler) Create(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("application/json")
+	uctx := ctx.UserValue("ctx").(context.Context)
 
-	thread, err := a.voteRepo.Create(slugOrId, &voteCreate)
+	slugOrId := ctx.UserValue("slug_or_id").(string)
+	var voteCreate models.VoteCreate
+	_ = json.Unmarshal(ctx.PostBody(), &voteCreate)
+
+	thread, err := a.voteRepo.Create(uctx, slugOrId, &voteCreate)
 
 	if err != nil {
-		return c.JSON(http.StatusNotFound, GetErrorMessage(err))
+		body, _ := json.Marshal(GetErrorMessage(err))
+		ctx.SetBody(body)
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
 	}
 
-	return c.JSON(http.StatusOK, thread)
+	body, _ := json.Marshal(thread)
+	ctx.SetBody(body)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+
+	return
 }

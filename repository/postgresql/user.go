@@ -30,8 +30,8 @@ func NewUserPostgresRepo(db *pgxpool.Pool) domain.UserRepo {
 	return &UserPostgresRepo{Db: db}
 }
 
-func (a *UserPostgresRepo) getUserByNicknameOrEmail(nickname string, email string) (*[]models.User, error) {
-	rows, err := a.Db.Query(context.Background(), GetUserByNicknameOrEmailCommand, nickname, email)
+func (a *UserPostgresRepo) getUserByNicknameOrEmail(ctx context.Context, nickname string, email string) (*[]models.User, error) {
+	rows, err := a.Db.Query(ctx, GetUserByNicknameOrEmailCommand, nickname, email)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +49,10 @@ func (a *UserPostgresRepo) getUserByNicknameOrEmail(nickname string, email strin
 	return &users, nil
 }
 
-func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
-	_, err := a.Db.Exec(context.Background(), CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
+func (a *UserPostgresRepo) Create(ctx context.Context, user *models.User) (*[]models.User, error) {
+	_, err := a.Db.Exec(ctx, CreateUserCommand, user.Nickname, user.Fullname, user.About, user.Email)
 	if err != nil {
-		checkAlreadyExist, err := a.getUserByNicknameOrEmail(user.Nickname, user.Email)
+		checkAlreadyExist, err := a.getUserByNicknameOrEmail(ctx, user.Nickname, user.Email)
 		if err == nil && len(*checkAlreadyExist) > 0 {
 			return checkAlreadyExist, ErrorUserAlreadyExist
 		} else {
@@ -66,8 +66,8 @@ func (a *UserPostgresRepo) Create(user *models.User) (*[]models.User, error) {
 	return &userToReturn, nil
 }
 
-func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate) (*models.User, error) {
-	user, err := a.Get(nickname)
+func (a *UserPostgresRepo) Update(ctx context.Context, nickname string, updateData *models.UserUpdate) (*models.User, error) {
+	user, err := a.Get(ctx, nickname)
 	if err != nil {
 		return nil, ErrorUserDoesNotExist
 	}
@@ -88,7 +88,7 @@ func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate
 		user.Email = updateData.Email
 	}
 
-	_, err = a.Db.Exec(context.Background(), UpdateUserCommand, updateData.Fullname, updateData.About, updateData.Email, nickname)
+	_, err = a.Db.Exec(ctx, UpdateUserCommand, updateData.Fullname, updateData.About, updateData.Email, nickname)
 
 	if err != nil {
 		return nil, ErrorConflictUpdateUser
@@ -97,11 +97,11 @@ func (a *UserPostgresRepo) Update(nickname string, updateData *models.UserUpdate
 	return user, nil
 }
 
-func (a *UserPostgresRepo) Get(nicknameOrEmail string) (*models.User, error) {
+func (a *UserPostgresRepo) Get(ctx context.Context, nicknameOrEmail string) (*models.User, error) {
 	var user models.User
-	err := a.Db.QueryRow(context.Background(), GetUserByNicknameCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+	err := a.Db.QueryRow(ctx, GetUserByNicknameCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	if err != nil {
-		err = a.Db.QueryRow(context.Background(), GetUserByEmailCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
+		err = a.Db.QueryRow(ctx, GetUserByEmailCommand, nicknameOrEmail).Scan(&user.Nickname, &user.Fullname, &user.About, &user.Email)
 	}
 
 	if err != nil {
